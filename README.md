@@ -1,7 +1,9 @@
 # pubnote
 
-Send encrypted notes between terminals, from anywhere to anywhere, using the power of nostr.
+![](res/alice.gif)  
+![](res/bob.gif)
 
+Send encrypted notes between terminals, from anywhere to anywhere, using the power of nostr.
 
 ## Installation
 
