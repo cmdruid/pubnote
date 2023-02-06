@@ -55,6 +55,10 @@ https://github.com/paulmillr/noble-secp256k1
 Used for communicating over a websocket.  
 https://github.com/websockets/ws
 
+**Pkg**  
+Package Node.js projects into an executable.  
+https://github.com/vercel/pkg
+
 **Nostr Implementation Possibilities**  
 https://github.com/nostr-protocol/nips
 
