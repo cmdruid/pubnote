@@ -13,25 +13,26 @@ This program is designed to run as a simple binary. No installation required.
 
 ```ts
 /**
-  Paste data to any remote terminal, using the magic of nostr.
+Usage: 
+  Machine A: pubnote -s 'secretphrase' recv
+  Machine B: pubnote -s 'secretphrase' send "whatever" "you" "want"
 
-  Usage: 
-    Machine A: nostrclip -s 'secretphrase' recv
-    Machine B: nostrclip -s 'secretphrase' paste "whatever" "you" "want"
+Options:
+  --key     -k privkey  : Specify a 32 byte private key to use for signatures.
+                          Must provide in string hex format.
 
-  Options:
-    --config  -c path    : Specify path
-
-    --relay   -r address : Set the relay to use. Default relay is currently set
-                          to ${DEFAULT_RELAY}
-
-    --secret  -s secret  : Specify the secret passphrase to use. The secret is
+  --pass    -s password : Specify the secret passphrase to use. The secret is
                           hashed and used for end-to-end routing and encryption.
+  --relay   -r address  : Set the relay to use. Default relay is currently set
+                          to ${DEFAULT_RELAY}
+  
+  --silent  -s          : Enable silent output (for better use in scripts).
 
-    --silent  -S         : Enable silent output (for better use in scripts).
-
-    --verbose -v         : Enable verbose debug output.
-/*
+  --timeout -t          : Time to keep connection open (in milliseconds).
+                          Default is ${DEFAULT_TIMEOUT}ms.
+  
+  --verbose -v          : Enable verbose debug output.  
+*/
 ```
 
 ## How it Works
