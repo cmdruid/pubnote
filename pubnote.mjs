@@ -1,41 +1,43 @@
-// Detect if we are running in the browser.
-const isBrowser = typeof window !== 'undefined'
+/* Imports */
 
-// Import our required packages.
-const { schnorr } = isBrowser ? window.nobleSecp256k1 : require('@noble/secp256k1')
-const WebSocket   = isBrowser ? window.WebSocket      : require('ws')
-const crypto      = globalThis.crypto
+import WebSocket     from 'ws'
+import { parseArgs } from '@pkgjs/parseargs'
+import { schnorr }   from '@noble/secp256k1'
+import { webcrypto as crypto } from 'node:crypto'
+
+const DEFAULT_RELAY   = 'relay.nostrich.de',
+      DEFAULT_TIMEOUT = 500
 
 // Define our base64 encoders.
-const b64encode = isBrowser
-  ? (bytes) => btoa(bytesToHex(bytes)).replace('+', '-').replace('/', '_')
-  : (bytes) => Buffer.from(bytesToHex(bytes)).toString('base64url')
-const b64decode = isBrowser
-  ? (str) => hexToBytes(atob(str.replace('-', '+').replace('_', '/')))
-  : (str) => hexToBytes(Buffer.from(str, 'base64url').toString('utf8'))
+const b64encode = (bytes) => btoa(bytesToHex(bytes)).replace('+', '-').replace('/', '_')
+const b64decode = (str) => hexToBytes(atob(str.replace('-', '+').replace('_', '/')))
 
 // Define our text encoders.
 const ec = new TextEncoder()
 const dc = new TextDecoder()
 
+// Emitter Library
+
 // Default options to use.
-const DEFAULT_OPT = {
+const DEFAULTS = {
   filter  : { since : Math.floor(Date.now() / 1000) },
   kind    : 29001,  // Default event type.
   tags    : [],     // Global tags for events.
   selfsub : false,  // React to self-published events.
   silent  : false,  // Silence noisy output.
+  timeout : 500,    // Timeout for network events.
   verbose : false,  // Show verbose log output.
 }
 
 class NostrEmitter {
   constructor(opt = {}) {
+    const { filter, ...options } = { ...DEFAULTS, ...opt }
     this.subscribed = false
     this.events     = {}
     this.tags       = []
     this.subId      = getRandomHex(16)
-    this.privkey    = opt.privkey || getRandomHex(32)
-    this.opt        = { ...DEFAULT_OPT, ...opt }
+    this.privkey    = options.privkey || getRandomHex(32)
+    this.opt        = options
     this.filter     = { kinds: [ this.opt.kind ], ...opt.filter }
     this.log        = (...s) => (opt.log)     ? opt.log(...s) : console.log(...s)
     this.info       = (...s) => (opt.silent)  ? null : this.log(...s)
@@ -69,11 +71,11 @@ class NostrEmitter {
     
     if (secret) this.secret = await sha256(secret)
 
-    if (!this.address) {
+    if (this.address === undefined) {
       throw new Error('Must provide a valid relay address!')
     }
 
-    if (!this.secret) {
+    if (this.secret === undefined) {
       throw new Error('Must provide a shared secret!')
     }
 
@@ -85,7 +87,7 @@ class NostrEmitter {
       this.socket.addEventListener('message', (event) => this.messageHandler(event))
 
       // Calculate our pubkey and topic.
-      this.pubkey = await schnorr.getPublicKey(this.privkey, true)
+      this.pubkey = schnorr.getPublicKey(this.privkey, true)
       this.topic  = bytesToHex(await sha256(this.secret, 2))
 
       if (typeof this.pubkey !== 'string') {
@@ -110,7 +112,7 @@ class NostrEmitter {
           this.info('Failed to connect!')
           rej(clearInterval(interval))
         } else { count++ }
-      }, 500)
+      }, this.opt.timeout)
     })
   }
 
@@ -304,9 +306,14 @@ class NostrEmitter {
   }
 
   close() {
-    this.socket.close()
-    this.subscribed = false
-    this.emit('close', this.subId)
+    return new Promise(res => {
+      setTimeout(() => {
+        this.socket.close()
+        this.subscribed = false
+        this.emit('close', this.subId)
+        res()
+      }, this.opt.timeout)
+    })
   }
 }
 
@@ -373,7 +380,88 @@ function getRandomHex (size = 32) {
   return bytesToHex(getRandomBytes(size))
 }
 
-// Handle exports between browser and node.
-if (isBrowser) {
-  window.NostrEmitter = NostrEmitter
-} else { module.exports = NostrEmitter }
+const usage = `
+Send encrypted notes between terminals, from anywhere to anywhere, using the power of nostr.
+
+Usage: 
+  Machine A: pubnote -s 'secretphrase' recv
+  Machine B: pubnote -s 'secretphrase' send "whatever" "you" "want"
+
+Options:
+  --key     -k privkey  : Specify a 32 byte private key to use for signatures.
+                          Must provide in string hex format.
+
+  --pass    -s password : Specify the secret passphrase to use. The secret is
+                          hashed and used for end-to-end routing and encryption.
+  --relay   -r address  : Set the relay to use. Default relay is currently set
+                          to ${DEFAULT_RELAY}
+  
+  --silent  -s          : Enable silent output (for better use in scripts).
+
+  --timeout -t          : Time to keep connection open (in milliseconds).
+                          Default is ${DEFAULT_TIMEOUT}ms.
+  
+  --verbose -v          : Enable verbose debug output.  
+`
+
+const options = {
+  'key'     : { type: 'string',  short: 'k' },
+  'pass'    : { type: 'string',  short: 'p' },
+  'relay'   : { type: 'string',  short: 'r' },
+  'silent'  : { type: 'boolean', short: 's' },
+  'timeout' : { type: 'string',  short: 't' },
+  'verbose' : { type: 'boolean', short: 'v' },
+}
+
+const config = { options, args: process.argv.slice(2), allowPositionals: true }
+const { values: opt, positionals: arg } = parseArgs(config)
+
+if (opt.timeout) opt.timeout = Number(opt.timeout)
+if (opt.verbose) console.log('Configuration:', opt ?? '{}', arg)
+
+async function main() {
+  let relay  = opt.relay || 'relay.nostrich.de',
+      secret = opt.pass  || b64encode(getRandomBytes(6))
+
+  if (relay === undefined || secret === undefined) {
+    console.log('Invalid arguments!')
+    exit(1)
+  }
+
+  const emitter = new NostrEmitter({ 
+    prvkey  : opt.key,
+    silent  : !opt.verbose,
+    timeout : opt.timeout || DEFAULT_TIMEOUT,
+    verbose : opt.verbose || false
+  })
+
+  try {
+    switch (arg[0]) {
+      case 'recv':
+        emitter.on('send', (content, meta) => {
+          if (!opt.silent) console.log(`From [${meta.pubkey.slice(0, 6)}]:`)
+          console.log(content)
+          emitter.close()
+          process.exit()
+        })
+        await emitter.connect(relay, secret)
+        if (opt.pass === undefined) console.log('Using pass:', secret)
+        if (!opt.silent) console.log('Listening for notes ...\n')
+        break
+      case 'send':
+        if (opt.pass === undefined) throw 'Missing a passphrase!'
+        await emitter.connect(relay, secret)
+        emitter.publish('send', arg.slice(1).join(' '))
+        if (!opt.silent) console.log(`Note sent as [${emitter.pubkey.slice(0, 6)}].`)
+        await emitter.close()
+        process.exit()
+      default:
+        console.log(usage)
+    }
+  } catch(err) {
+    console.log(err)
+    process.exit(1)
+  }
+}
+
+main()

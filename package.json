@@ -1,28 +1,33 @@
 {
-  "name": "@cmdcode/nostr-emitter",
-  "version": "2.0.9",
-  "description": "A simple event emitter, powered by Nostr.",
-  "main": "index.js",
+  "name": "@cmdcode/pubnote",
+  "version": "1.0.0",
+  "description": "Send encrypted notes between terminals, from anywhere to anywhere, using the power of nostr.",
+  "engines": {
+    "node": ">=16.0.0 <17.0.0"
+  },
+  "type": "module",
+  "main": "pubnote.js",
+  "bin": "build/bundle.js",
+  "pkg": {
+    "outputPath": "dist"
+  },
   "scripts": {
-    "test": "tape test/*.mjs"
+    "rollup": "rollup -c rollup.config.js",
+    "build": "yarn rollup && pkg --no-bytecode --public .",
+    "start": "node pubnote.mjs"
   },
   "keywords": [
-    "event",
-    "emitter",
-    "pub",
-    "sub",
-    "nostr"
+    "nostr",
+    "secure",
+    "clipboard",
+    "notes"
   ],
   "author": "Christopher Scott",
   "license": "CC-BY-1.0",
-  "repository": "https://github.com/cmdruid/nostr-emitter.git",
+  "repository": "https://github.com/cmdruid/pubnote.git",
   "publishConfig": {
     "registry": "https://registry.npmjs.org",
     "access": "public"
-  },
-  "dependencies": {
-    "@noble/secp256k1": "^1.7.1",
-    "ws": "^8.12.0"
   },
   "files": [
     "index.js",
@@ -30,6 +35,11 @@
     "LICENSE"
   ],
   "devDependencies": {
-    "tape": "^5.6.1"
+    "@noble/secp256k1": "^1.7.1",
+    "@pkgjs/parseargs": "^0.11.0",
+    "@rollup/plugin-commonjs": "^23.0.2",
+    "pkg": "^5.8.0",
+    "rollup": "^3.2.3",
+    "ws": "^8.12.0"
   }
 }
