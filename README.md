@@ -14,14 +14,14 @@ This program is designed to run as a simple binary. No installation required.
 ```ts
 /**
 Usage: 
-  Machine A: pubnote -s 'secretphrase' recv
-  Machine B: pubnote -s 'secretphrase' send "whatever" "you" "want"
+  Machine A: pubnote -p 'secretphrase' recv
+  Machine B: pubnote -p 'secretphrase' send "whatever" "you" "want"
 
 Options:
   --key     -k privkey  : Specify a 32 byte private key to use for signatures.
                           Must provide in string hex format.
 
-  --pass    -s password : Specify the secret passphrase to use. The secret is
+  --pass    -p password : Specify the secret passphrase to use. The secret is
                           hashed and used for end-to-end routing and encryption.
   --relay   -r address  : Set the relay to use. Default relay is currently set
                           to ${DEFAULT_RELAY}
