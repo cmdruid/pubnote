@@ -23,13 +23,13 @@ Options:
 
   --pass    -p password : Specify the secret passphrase to use. The secret is
                           hashed and used for end-to-end routing and encryption.
-  --relay   -r address  : Set the relay to use. Default relay is currently set
-                          to ${DEFAULT_RELAY}
+
+  --relay   -r address  : Set the relay to use.
   
   --silent  -s          : Enable silent output (for better use in scripts).
 
-  --timeout -t          : Time to keep connection open (in milliseconds).
-                          Default is ${DEFAULT_TIMEOUT}ms.
+  --timeout -t          : Time to keep socket open when connecting 
+                          (in milliseconds). Default is 500ms.
   
   --verbose -v          : Enable verbose debug output.  
 */
